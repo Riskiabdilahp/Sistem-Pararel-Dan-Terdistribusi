@@ -1,56 +1,52 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
- */
-package clienthandler;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.net.ServerSocket;
 import java.net.Socket;
 
-class ClientHandler implements Runnable {
+public class TCPEchoServerThread {
 
-    private static int numConnections = 0;
-    private int connectionId;
-    private Socket link;
+    private static final int PORT = 12345;
 
-    public ClientHandler(Socket s) {
-        connectionId = numConnections++;
-        System.out.println("Melayani koneksi ke-" + connectionId);
-        link = s;
+    public static void main(String[] args) {
+        TCPEchoServerThread server = new TCPEchoServerThread();
+        server.start();
     }
 
-    public void run() {
-        PrintWriter out = null;
-        BufferedReader in = null;
-        int numMessages = 0;
+    public void start() {
+        try (ServerSocket servSock = new ServerSocket(PORT)) {
+            System.out.println("Server telah berjalan di komputer ini pada port " + PORT);
 
-        try {
-            out = new PrintWriter(link.getOutputStream(), true);
-            in = new BufferedReader(new InputStreamReader(link.getInputStream()));
-            String message = in.readLine();
-
-            while (message != null && !message.equals("close")) {
-                System.out.println("Pesan diterima: [" + message + "] dari client " + connectionId + " dalam " + message.length() + " bytes");
-                numMessages++;
-                out.println("Isi Pesan " + numMessages + ": " + message);
-                message = in.readLine();
+            while (true) {
+                Socket clientSocket = servSock.accept();
+                Thread clientThread = new Thread(new ClientHandler(clientSocket));
+                clientThread.start();
             }
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
+            System.out.println("Tidak dapat memulai koneksi");
+            System.exit(1);
+        }
+    }
+
+    private static class ClientHandler implements Runnable {
+        private Socket clientSocket;
+
+        public ClientHandler(Socket clientSocket) {
+            this.clientSocket = clientSocket;
+        }
+
+        @Override
+        public void run() {
             try {
-                if (out != null) {
-                    out.close();
-                }
-                if (in != null) {
-                    in.close();
-                }
-                link.close();
-                System.out.println("Menutup koneksi, #" + connectionId);
+                // Handle client communication here
+                // You can add your code to process client requests
             } catch (IOException e) {
                 e.printStackTrace();
+            } finally {
+                try {
+                    clientSocket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
